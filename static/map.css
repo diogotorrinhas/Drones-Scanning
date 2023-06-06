@@ -1,0 +1,16 @@
+body {
+    padding: 0;
+    margin: 0;
+}
+
+#painel {
+    float: left;
+    height: 600px;
+    width: 20%;
+}
+
+#map {
+    float: right;
+    height: 946px;
+    width: 65%;
+}

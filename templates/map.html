@@ -1,0 +1,145 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Leaflet Website</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="{{ url_for('static', filename='map.css') }}" />
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+            integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+            crossorigin=""/>
+        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+                integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+                crossorigin=""></script>
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+        <style>
+            .obu-container {
+                display: flex;
+                width: 130%;
+                flex-direction: column;
+                align-items: flex-start;
+                margin-bottom: 10px;
+                overflow-x: auto;
+                overflow-y: auto;
+                max-height: 180px;
+                border: 1px solid black; 
+            }
+            .obu-box {
+                width: 90%;
+                padding: 70px;
+                background-color: #F5F5F5;
+            }
+            .obu-title {
+                text-align: left;
+                font-weight: bold;
+                margin-top: 15%;
+            }
+            .obu-content {
+                text-align: left;
+                align-self: flex-start;
+            }
+            .obu-content p {
+                margin: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="painel">
+            <h2>RSA Project simulation</h2>
+            <div class="obu-title">OBU 1</div>
+            <div class="obu-container" id="obu1-container">
+                <div class="obu-box" id="obu1-box">
+                    <div class="obu-content" id="obu1-content"></div>
+                </div>
+            </div>
+            <div class="obu-title">OBU 2</div>
+            <div class="obu-container" id="obu2-container">
+                <div class="obu-box" id="obu2-box">
+                    <div class="obu-content" id="obu2-content"></div>
+                </div>
+            </div>
+            <div class="obu-title">OBU 3</div>
+            <div class="obu-container" id="obu3-container">
+                <div class="obu-box" id="obu3-box">
+                    <div class="obu-content" id="obu3-content"></div>
+                </div>
+            </div>
+        </div>
+        <div id="map"></div>
+        <script src="{{ url_for('static', filename='map.js') }}" /></script>
+        <script>
+            var zonesIcon = L.icon({
+                iconUrl: "{{ url_for('static', filename='marker.png') }}",
+                iconSize: [18, 18],
+                iconAnchor: [18, 39],
+                popupAnchor: [10, -35]
+            });
+
+            {% for zone in zones %}
+                L.marker([ {{ zone[0] }}, {{ zone[1] }} ], {icon: zonesIcon}).addTo(map)
+                .bindTooltip("Zone ID: {{ zone[2] }}", {permanent: false});
+            {% endfor %}
+            
+            // Stores the latest content of each OBU
+            var latestContent = {
+                obu1: '',
+                obu2: '',
+                obu3: ''
+            };
+            
+            function updateWateringInfo() {
+                $.ajax({
+                    url: '/watering',
+                    type: 'GET',
+                    contentType: 'application/json',
+                    dataType: 'json',
+                    success: function(data) {
+                        var obu1Box = $('#obu1-content');
+
+                        var obu2Box = $('#obu2-content');
+
+                        var obu3Box = $('#obu3-content');
+
+                        for(key in data) {
+                            var content = '';
+                            if (data[key]["water"] === "True"){
+                                content = '<p>-ZoneID: ' + key + ', analyzer: ' + data[key]["ip"] + ', need water.</p>';
+                            }else if (data[key]["water"] === "False"){
+                                content = '<p>-ZoneID: ' + key + ', analyzer: ' + data[key]["ip"] + ', don\'t need water.</p>';
+                            }
+
+                            if(data[key]["broker"] == "obu1"){
+                                console.log("TEXT IN THE BOX1->", latestContent.obu1);
+                                if (latestContent.obu1.indexOf(content) === -1){ //latestContent.obu1 !== content
+                                    obu1Box.append(content);
+                                    latestContent.obu1 += content;
+                                }
+                            }else if (data[key]["broker"] == "obu2"){
+                                console.log("TEXT IN THE BOX2->", latestContent.obu2);
+                                if (latestContent.obu2.indexOf(content) === -1){
+                                    obu2Box.append(content);
+                                    latestContent.obu2 += content;
+                                }
+                            }else if(data[key]["broker"] == "obu3"){
+                                console.log("TEXT IN THE BOX3->", latestContent.obu3);
+                                if (latestContent.obu3.indexOf(content) === -1){
+                                    obu3Box.append(content);
+                                    latestContent.obu3 += content;
+                                }
+                            }
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.log('Error:', error);
+                    }
+                });
+            }
+
+            // Update the watering info initially
+            updateWateringInfo();
+
+            // Update the watering info every 1 seconds
+            setInterval(updateWateringInfo, 1000);
+        </script>
+    </body>
+</html>
